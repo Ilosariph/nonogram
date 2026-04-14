@@ -17,10 +17,10 @@
   --ink-muted: #b8b0a4;
   --accent: #c45d3e;
   --accent-hover: #a84a2f;
-  --filled: #2c2826;
+  --filled: #2a3f6b;
   --mark: #d4ccc0;
   --grid-line: #c9c1b3;
-  --grid-thick: #a89e90;
+  --grid-thick: #000;
   --cell-hover: rgba(196, 93, 62, 0.08);
   --done: #c9c1b3;
   --radius: 6px;
@@ -149,12 +149,14 @@ td.cell.thick-left { border-left: 2px solid var(--grid-thick); }
 td.cell.thick-top { border-top: 2px solid var(--grid-thick); }
 td.cell.filled { background: var(--filled); }
 td.cell.filled:hover { background: var(--filled); }
+td.cell.filled.dark-right { border-right-color: #000; }
+td.cell.filled.dark-bottom { border-bottom-color: #000; }
 
 td.cell.marked::after {
   content: '\00d7';
-  font-size: 1.6rem;
+  font-size: 2.2rem;
   font-weight: 500;
-  color: var(--ink-muted);
+  color: var(--ink-light);
   position: absolute;
   inset: 0;
   display: flex;
@@ -506,10 +508,17 @@ button:active { transform: scale(0.97); }
   }
 
   function refreshCell(r, c) {
-    const td = document.querySelector(`td.cell[data-r="${r}"][data-c="${c}"]`);
-    if (!td) return;
-    td.classList.toggle('filled', grid[r][c] === 1);
-    td.classList.toggle('marked', grid[r][c] === 2);
+    const size = puzzle.size;
+    for (const [nr, nc] of [[r, c], [r, c - 1], [r - 1, c]]) {
+      if (nr < 0 || nc < 0 || nr >= size || nc >= size) continue;
+      const td = document.querySelector(`td.cell[data-r="${nr}"][data-c="${nc}"]`);
+      if (!td) continue;
+      const filled = grid[nr][nc] === 1;
+      td.classList.toggle('filled', filled);
+      td.classList.toggle('marked', grid[nr][nc] === 2);
+      td.classList.toggle('dark-right', filled && nc + 1 < size && grid[nr][nc + 1] === 1);
+      td.classList.toggle('dark-bottom', filled && nr + 1 < size && grid[nr + 1][nc] === 1);
+    }
   }
 
   function getGroups(line) {

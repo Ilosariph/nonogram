@@ -12,9 +12,18 @@ def generate_puzzle(seed: str, size: int = 5) -> dict:
     h = int(hashlib.sha256(seed.encode()).hexdigest(), 16)
     rng = random.Random(h)
 
-    # Generate grid with ~40-55% fill rate for interesting puzzles
+    # Generate grid with ~40-55% fill rate, biased toward runs (fewer isolated 1s)
     density = rng.uniform(0.40, 0.55)
-    grid = [[1 if rng.random() < density else 0 for _ in range(size)] for _ in range(size)]
+    def make_row(n):
+        row = []
+        prev = 0
+        for _ in range(n):
+            # If previous cell was filled, higher chance to continue the run
+            p = min(0.80, density * 1.8) if prev else density * 0.7
+            prev = 1 if rng.random() < p else 0
+            row.append(prev)
+        return row
+    grid = [make_row(size) for _ in range(size)]
 
     # Ensure no completely empty rows/columns (boring clues)
     for r in range(size):
