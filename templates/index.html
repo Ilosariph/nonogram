@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Nonogram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f5f0e8;
+  --bg-warm: #ede7db;
+  --ink: #2c2826;
+  --ink-light: #8a8279;
+  --ink-muted: #b8b0a4;
+  --accent: #c45d3e;
+  --accent-hover: #a84a2f;
+  --filled: #2c2826;
+  --mark: #d4ccc0;
+  --grid-line: #c9c1b3;
+  --grid-thick: #a89e90;
+  --cell-hover: rgba(196, 93, 62, 0.08);
+  --done: #c9c1b3;
+  --radius: 6px;
+  --cell-size: 36px;
+}
+
+html { background: var(--bg); }
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+/* ── Top bar: title + timer ── */
+.top-bar {
+  width: 100%;
+  max-width: 600px;
+  padding: 0.75rem 1rem 0.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+h1 span { color: var(--accent); }
+
+.timer-info {
+  font-size: 0.8rem;
+  color: var(--ink-light);
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* ── Spacer pushes content toward bottom on mobile ── */
+.mobile-spacer { flex: 1 1 auto; }
+
+/* ── Puzzle area ── */
+.puzzle-wrap {
+  width: 100%;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0.75rem 0.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.puzzle-table {
+  border-collapse: collapse;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.col-clue-cell {
+  vertical-align: bottom;
+  text-align: center;
+  padding: 0 1px 3px;
+  min-width: var(--cell-size);
+  width: var(--cell-size);
+}
+
+.col-clue-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  justify-content: flex-end;
+}
+
+.clue-num {
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--ink);
+  transition: color 0.25s, opacity 0.25s;
+}
+
+.clue-num.done {
+  color: var(--done);
+  text-decoration: line-through;
+  text-decoration-color: var(--done);
+}
+
+.row-clue-cell {
+  text-align: right;
+  padding: 0 5px 0 0;
+  white-space: nowrap;
+  height: var(--cell-size);
+}
+
+.row-clue-inner {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+td.cell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  min-width: var(--cell-size);
+  border: 1px solid var(--grid-line);
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: background 0.08s;
+  position: relative;
+  background: #fff;
+}
+
+td.cell:hover { background: var(--cell-hover); }
+td.cell.thick-left { border-left: 2px solid var(--grid-thick); }
+td.cell.thick-top { border-top: 2px solid var(--grid-thick); }
+td.cell.filled { background: var(--filled); }
+td.cell.filled:hover { background: var(--filled); }
+
+td.cell.marked::after {
+  content: '\00d7';
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Win banner ── */
+.win-banner {
+  display: none;
+  text-align: center;
+  padding: 0.5rem;
+  font-family: 'Fraunces', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent);
+  animation: pop 0.4s ease;
+}
+.win-banner.show { display: block; }
+
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Top controls (seed/size) ── */
+.top-controls {
+  width: 100%;
+  max-width: 600px;
+  padding: 0.25rem 1rem 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ── Bottom controls ── */
+.bottom-controls {
+  width: 100%;
+  max-width: 600px;
+  padding: 0.35rem 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mode-bar { display: flex; gap: 0; }
+
+.mode-btn {
+  flex: 1;
+  text-align: center;
+  padding: 0.6rem;
+  border: 1.5px solid var(--grid-line);
+  background: #fff;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--ink-light);
+}
+
+.mode-btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.mode-btn:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
+.mode-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.controls-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.controls-row input[type="text"] {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.65rem;
+  border: 1.5px solid var(--grid-line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  flex: 1;
+  min-width: 0;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.controls-row input[type="text"]:focus,
+.controls-row input[type="number"]:focus { border-color: var(--accent); }
+.controls-row input[type="text"]::placeholder { color: var(--ink-muted); }
+
+select, button {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.65rem;
+  border: 1.5px solid var(--grid-line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+button:hover { border-color: var(--accent); color: var(--accent); }
+button:active { transform: scale(0.97); }
+.btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-accent:hover { background: var(--accent-hover); color: #fff; border-color: var(--accent-hover); }
+
+.seed-display {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.seed-display code {
+  background: var(--bg-warm);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  user-select: all;
+}
+
+/* Safe-area padding for phones with gesture bars */
+.bottom-pad {
+  height: env(safe-area-inset-bottom, 0.5rem);
+  min-height: 0.5rem;
+}
+
+/* ── Mobile ── */
+@media (max-width: 420px) {
+  :root { --cell-size: 30px; }
+  h1 { font-size: 1.2rem; }
+  .clue-num { font-size: 0.65rem; }
+  .top-bar { padding: 0.5rem 0.75rem 0.15rem; }
+  .bottom-controls { padding: 0.25rem 0.75rem 0.5rem; }
+}
+
+/* ── Desktop: no spacer, content starts at top ── */
+@media (min-width: 700px) {
+  :root { --cell-size: 38px; }
+  .mobile-spacer { flex: 0 0 0; }
+  .top-bar { padding: 1.5rem 1rem 0.5rem; }
+  h1 { font-size: 1.6rem; }
+}
+#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 999;
+}
+</style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+
+<div class="top-bar">
+  <h1>Nono<span>gram</span></h1>
+  <div class="timer-info">
+    <span id="timerDisplay">0:00</span>
+    <span id="cellCount"></span>
+  </div>
+</div>
+
+<div class="top-controls">
+  <div class="controls-row">
+    <input type="text" id="seedInput" placeholder="seed">
+    <select id="sizeSelect">
+      <option value="5">5&times;5</option>
+      <option value="10" selected>10&times;10</option>
+      <option value="15">15&times;15</option>
+      <option value="custom">Custom…</option>
+    </select>
+    <input type="number" id="customSize" min="15" max="50" value="20" placeholder="15–50" style="display:none; width:5.5rem; font-family:'DM Mono',monospace; font-size:0.85rem; padding:0.45rem 0.65rem; border:1.5px solid var(--grid-line); border-radius:var(--radius); background:#fff; color:var(--ink); outline:none;">
+    <button id="retryBtn">Retry</button>
+    <button class="btn-accent" id="newBtn">New</button>
+  </div>
+  <div class="seed-display" id="seedDisplay"></div>
+</div>
+
+<!-- grows on mobile to push puzzle + controls toward bottom of screen -->
+<div class="mobile-spacer"></div>
+
+<div class="puzzle-wrap" id="puzzleWrap">
+  <p style="color:var(--ink-muted); padding:3rem 1rem; text-align:center;">Loading puzzle&hellip;</p>
+</div>
+
+<div class="win-banner" id="winBanner">Solved!</div>
+
+<div class="bottom-controls">
+  <div class="mode-bar">
+    <button class="mode-btn" data-mode="mark">&times; Mark</button>
+    <button class="mode-btn active" data-mode="fill">&#9632; Fill</button>
+  </div>
+</div>
+
+<div class="bottom-pad"></div>
+
+<script>
+(function () {
+  let puzzle = null;
+  let grid = [];
+  let mode = 'fill';
+  let solved = false;
+  let timerSec = 0;
+  let timerInterval = null;
+  let painting = null;
+
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+
+  $('#newBtn').addEventListener('click', () => { $('#seedInput').value = ''; loadPuzzle(); });
+  $('#retryBtn').addEventListener('click', () => { if (puzzle) { $('#seedInput').value = puzzle.seed; } loadPuzzle(); });
+  $('#seedInput').addEventListener('keydown', e => { if (e.key === 'Enter') loadPuzzle(); });
+
+  $('#sizeSelect').addEventListener('change', () => {
+    const custom = $('#sizeSelect').value === 'custom';
+    $('#customSize').style.display = custom ? '' : 'none';
+    if (custom) $('#customSize').focus();
+  });
+  $('#customSize').addEventListener('keydown', e => { if (e.key === 'Enter') loadPuzzle(); });
+
+  function toggleMode() {
+    mode = mode === 'fill' ? 'mark' : 'fill';
+    $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  }
+  $$('.mode-btn').forEach(btn => btn.addEventListener('click', toggleMode));
+
+  async function loadPuzzle() {
+    solved = false;
+    $('#winBanner').classList.remove('show');
+    const seed = $('#seedInput').value.trim();
+    const sizeRaw = $('#sizeSelect').value;
+    const size = sizeRaw === 'custom'
+      ? Math.min(50, Math.max(15, parseInt($('#customSize').value) || 20))
+      : parseInt(sizeRaw);
+    const url = `/api/puzzle?size=${size}&seed=${encodeURIComponent(seed)}`;
+    const res = await fetch(url);
+    puzzle = await res.json();
+    grid = Array.from({ length: puzzle.size }, () => Array(puzzle.size).fill(0));
+    $('#seedInput').value = puzzle.seed;
+    $('#seedDisplay').innerHTML = `seed: <code>${puzzle.seed}</code> &middot; ${puzzle.size}&times;${puzzle.size}`;
+    startTimer();
+    renderPuzzle();
+    updateClues();
+    updateCellCount();
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    timerSec = 0;
+    $('#timerDisplay').textContent = '0:00';
+    timerInterval = setInterval(() => {
+      if (solved) return;
+      timerSec++;
+      const m = Math.floor(timerSec / 60);
+      const s = (timerSec % 60).toString().padStart(2, '0');
+      $('#timerDisplay').textContent = `${m}:${s}`;
+    }, 1000);
+  }
+
+  function renderPuzzle() {
+    const size = puzzle.size;
+    const maxRowClueLen = Math.max(...puzzle.row_clues.map(c => c.length));
+    const maxColClueLen = Math.max(...puzzle.col_clues.map(c => c.length));
+
+    let html = '<table class="puzzle-table">';
+
+    for (let ci = 0; ci < maxColClueLen; ci++) {
+      html += '<tr>';
+      html += `<td colspan="${maxRowClueLen}" style="border:none"></td>`;
+      for (let c = 0; c < size; c++) {
+        const clues = puzzle.col_clues[c];
+        const offset = maxColClueLen - clues.length;
+        const idx = ci - offset;
+        const val = idx >= 0 ? clues[idx] : '';
+        const id = idx >= 0 ? `data-clue-id="c${c}-${idx}"` : '';
+        html += `<td class="col-clue-cell"><div class="col-clue-inner"><span class="clue-num" ${id}>${val}</span></div></td>`;
+      }
+      html += '</tr>';
+    }
+
+    for (let r = 0; r < size; r++) {
+      html += '<tr>';
+      const rc = puzzle.row_clues[r];
+      const pad = maxRowClueLen - rc.length;
+      for (let i = 0; i < pad; i++) html += '<td class="row-clue-cell"></td>';
+      for (let i = 0; i < rc.length; i++) {
+        html += `<td class="row-clue-cell"><div class="row-clue-inner"><span class="clue-num" data-clue-id="r${r}-${i}">${rc[i]}</span></div></td>`;
+      }
+      for (let c = 0; c < size; c++) {
+        let cls = 'cell';
+        if (c % 5 === 0 && c > 0) cls += ' thick-left';
+        if (r % 5 === 0 && r > 0) cls += ' thick-top';
+        html += `<td class="${cls}" data-r="${r}" data-c="${c}"></td>`;
+      }
+      html += '</tr>';
+    }
+
+    html += '</table>';
+    $('#puzzleWrap').innerHTML = html;
+    bindCells();
+  }
+
+  function bindCells() {
+    $$('td.cell').forEach(td => {
+      td.addEventListener('pointerdown', onPointerDown);
+      td.addEventListener('pointerenter', onPointerEnter);
+    });
+    document.addEventListener('pointerup', () => { painting = null; });
+    document.addEventListener('pointercancel', () => { painting = null; });
+  }
+
+  function onPointerDown(e) {
+    if (solved) return;
+    e.preventDefault();
+    const r = +e.currentTarget.dataset.r;
+    const c = +e.currentTarget.dataset.c;
+    painting = toggleCell(r, c);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  }
+
+  function onPointerEnter(e) {
+    if (painting === null || solved) return;
+    applyCell(+e.currentTarget.dataset.r, +e.currentTarget.dataset.c, painting);
+  }
+
+  function toggleCell(r, c) {
+    const current = grid[r][c];
+    let next;
+    if (mode === 'fill') { next = current === 1 ? 0 : 1; }
+    else { next = current === 2 ? 0 : 2; }
+    grid[r][c] = next;
+    refreshCell(r, c);
+    updateClues();
+    updateCellCount();
+    checkWin();
+    return next;
+  }
+
+  function applyCell(r, c, value) {
+    if (grid[r][c] === value) return;
+    if (mode === 'fill' && value !== 0 && value !== 1) return;
+    if (mode === 'mark' && value !== 0 && value !== 2) return;
+    if (value !== 0 && grid[r][c] !== 0) return;
+    grid[r][c] = value;
+    refreshCell(r, c);
+    updateClues();
+    updateCellCount();
+    checkWin();
+  }
+
+  function refreshCell(r, c) {
+    const td = document.querySelector(`td.cell[data-r="${r}"][data-c="${c}"]`);
+    if (!td) return;
+    td.classList.toggle('filled', grid[r][c] === 1);
+    td.classList.toggle('marked', grid[r][c] === 2);
+  }
+
+  function getGroups(line) {
+    const groups = [];
+    let count = 0;
+    for (const v of line) {
+      if (v === 1) { count++; }
+      else { if (count > 0) groups.push(count); count = 0; }
+    }
+    if (count > 0) groups.push(count);
+    return groups.length ? groups : [0];
+  }
+
+  function updateClues() {
+    if (!puzzle) return;
+    const size = puzzle.size;
+    for (let r = 0; r < size; r++) {
+      const done = arrEq(getGroups(grid[r]), puzzle.row_clues[r]);
+      for (let i = 0; i < puzzle.row_clues[r].length; i++) {
+        const el = document.querySelector(`[data-clue-id="r${r}-${i}"]`);
+        if (el) el.classList.toggle('done', done);
+      }
+    }
+    for (let c = 0; c < size; c++) {
+      const col = [];
+      for (let r = 0; r < size; r++) col.push(grid[r][c]);
+      const done = arrEq(getGroups(col), puzzle.col_clues[c]);
+      for (let i = 0; i < puzzle.col_clues[c].length; i++) {
+        const el = document.querySelector(`[data-clue-id="c${c}-${i}"]`);
+        if (el) el.classList.toggle('done', done);
+      }
+    }
+  }
+
+  function arrEq(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  function updateCellCount() {
+    if (!puzzle) return;
+    $('#cellCount').textContent = `${grid.flat().filter(v => v === 1).length} filled`;
+  }
+
+  async function checkWin() {
+    if (solved) return;
+    const size = puzzle.size;
+    for (let r = 0; r < size; r++) {
+      if (!arrEq(getGroups(grid[r]), puzzle.row_clues[r])) return;
+    }
+    for (let c = 0; c < size; c++) {
+      const col = [];
+      for (let r = 0; r < size; r++) col.push(grid[r][c]);
+      if (!arrEq(getGroups(col), puzzle.col_clues[c])) return;
+    }
+    const playerGrid = grid.map(row => row.map(v => v === 1 ? 1 : 0));
+    const res = await fetch('/api/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seed: puzzle.seed, size: puzzle.size, grid: playerGrid })
+    });
+    const data = await res.json();
+    if (data.correct) {
+      solved = true;
+      clearInterval(timerInterval);
+      $('#winBanner').classList.add('show');
+      launchConfetti();
+    }
+  }
+
+  function setMode(m) {
+    mode = m;
+    $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'f' || e.key === 'F') setMode('fill');
+    else if (e.key === 'x' || e.key === 'X') setMode('mark');
+  });
+
+  function launchConfetti() {
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const COLORS = ['#c45d3e','#2c2826','#f5c842','#6a9e6a','#5b8fc9','#c47db8'];
+    const COUNT = 300;
+    const DURATION = 3500;
+    const start = performance.now();
+
+    const particles = Array.from({ length: COUNT }, () => ({
+      x: Math.random() * W,
+      y: H + Math.random() * 20,
+      vx: (Math.random() - 0.5) * 8,
+      vy: -(Math.random() * 18 + 8),
+      angle: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.3,
+      w: Math.random() * 10 + 5,
+      h: Math.random() * 5 + 3,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    }));
+
+    function draw(now) {
+      const elapsed = now - start;
+      if (elapsed > DURATION) { ctx.clearRect(0, 0, W, H); return; }
+      const progress = elapsed / DURATION;
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalAlpha = 1 - Math.pow(progress, 2);
+      for (const p of particles) {
+        p.x += p.vx;
+        p.vy += 0.18;
+        p.y += p.vy;
+        p.angle += p.spin;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  }
+
+  loadPuzzle();
+})();
+</script>
+</body>
+</html>
