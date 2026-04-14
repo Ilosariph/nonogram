@@ -12,18 +12,25 @@ def generate_puzzle(seed: str, size: int = 5) -> dict:
     h = int(hashlib.sha256(seed.encode()).hexdigest(), 16)
     rng = random.Random(h)
 
-    # Generate grid with ~40-55% fill rate, biased toward runs (fewer isolated 1s)
+    # Generate grid with ~40-55% fill rate, biased toward runs in both directions
     density = rng.uniform(0.40, 0.55)
-    def make_row(n):
-        row = []
+    def make_line(n):
+        line = []
         prev = 0
         for _ in range(n):
-            # If previous cell was filled, higher chance to continue the run
-            p = min(0.80, density * 1.8) if prev else density * 0.7
+            # continuation raises chance of extending a run; slightly looser bias allows some singles
+            p = min(0.75, density * 1.6) if prev else density * 0.8
             prev = 1 if rng.random() < p else 0
-            row.append(prev)
-        return row
-    grid = [make_row(size) for _ in range(size)]
+            line.append(prev)
+        return line
+
+    # Generate rows with run-biasing
+    row_grid = [make_line(size) for _ in range(size)]
+    # Generate columns with run-biasing, then transpose and average with row_grid
+    col_grid_T = [make_line(size) for _ in range(size)]
+    # Merge: cell is filled if either the row-pass or column-pass fills it (OR blend)
+    grid = [[1 if row_grid[r][c] or col_grid_T[c][r] else 0
+             for c in range(size)] for r in range(size)]
 
     # Ensure no completely empty rows/columns (boring clues)
     for r in range(size):

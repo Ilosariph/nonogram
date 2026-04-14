@@ -147,6 +147,8 @@ td.cell {
 td.cell:hover { background: var(--cell-hover); }
 td.cell.thick-left { border-left: 2px solid var(--grid-thick); }
 td.cell.thick-top { border-top: 2px solid var(--grid-thick); }
+td.cell.thick-right { border-right: 2px solid var(--grid-thick); }
+td.cell.thick-bottom { border-bottom: 2px solid var(--grid-thick); }
 td.cell.filled { background: var(--filled); }
 td.cell.filled:hover { background: var(--filled); }
 td.cell.filled.dark-right { border-right-color: #000; }
@@ -348,6 +350,9 @@ button:active { transform: scale(0.97); }
     <button class="mode-btn" data-mode="mark">&times; Mark</button>
     <button class="mode-btn active" data-mode="fill">&#9632; Fill</button>
   </div>
+  <div class="controls-row">
+    <button id="markDoneRowsBtn" style="flex:1">Mark empties in done rows/cols</button>
+  </div>
 </div>
 
 <div class="bottom-pad"></div>
@@ -446,8 +451,10 @@ button:active { transform: scale(0.97); }
       }
       for (let c = 0; c < size; c++) {
         let cls = 'cell';
-        if (c % 5 === 0 && c > 0) cls += ' thick-left';
-        if (r % 5 === 0 && r > 0) cls += ' thick-top';
+        if (c === 0 || (c % 5 === 0 && c > 0)) cls += ' thick-left';
+        if (r === 0 || (r % 5 === 0 && r > 0)) cls += ' thick-top';
+        if (c === size - 1) cls += ' thick-right';
+        if (r === size - 1) cls += ' thick-bottom';
         html += `<td class="${cls}" data-r="${r}" data-c="${c}"></td>`;
       }
       html += '</tr>';
@@ -594,6 +601,27 @@ button:active { transform: scale(0.97); }
     mode = m;
     $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
   }
+
+  $('#markDoneRowsBtn').addEventListener('click', () => {
+    if (!puzzle || solved) return;
+    const size = puzzle.size;
+    for (let r = 0; r < size; r++) {
+      if (!arrEq(getGroups(grid[r]), puzzle.row_clues[r])) continue;
+      for (let c = 0; c < size; c++) {
+        if (grid[r][c] === 0) { grid[r][c] = 2; refreshCell(r, c); }
+      }
+    }
+    for (let c = 0; c < size; c++) {
+      const col = grid.map(row => row[c]);
+      if (!arrEq(getGroups(col), puzzle.col_clues[c])) continue;
+      for (let r = 0; r < size; r++) {
+        if (grid[r][c] === 0) { grid[r][c] = 2; refreshCell(r, c); }
+      }
+    }
+    updateClues();
+    updateCellCount();
+    checkWin();
+  });
 
   document.addEventListener('keydown', e => {
     if (e.key === 'f' || e.key === 'F') setMode('fill');
