@@ -17,14 +17,32 @@
   --ink-muted: #b8b0a4;
   --accent: #c45d3e;
   --accent-hover: #a84a2f;
-  --filled: #2a3f6b;
+  --filled: #5b7ab8;
   --mark: #d4ccc0;
-  --grid-line: #c9c1b3;
-  --grid-thick: #000;
+  --grid-line: #938f8b;
+  --grid-thick: #2c2826;
+  --cell-bg: #fff;
   --cell-hover: rgba(196, 93, 62, 0.08);
   --done: #c9c1b3;
   --radius: 6px;
   --cell-size: 36px;
+}
+
+html.dark {
+  --bg: #1a1714;
+  --bg-warm: #222019;
+  --ink: #e8e2d8;
+  --ink-light: #8a8279;
+  --ink-muted: #5a544e;
+  --accent: #d4694a;
+  --accent-hover: #b8533a;
+  --filled: #3a5a9e;
+  --mark: #3a3530;
+  --grid-line: #6b6560;
+  --grid-thick: #9e9890;
+  --cell-bg: #252220;
+  --cell-hover: rgba(212, 105, 74, 0.12);
+  --done: #4a4540;
 }
 
 html { background: var(--bg); }
@@ -141,7 +159,7 @@ td.cell {
   cursor: pointer;
   transition: background 0.08s;
   position: relative;
-  background: #fff;
+  background: var(--cell-bg);
 }
 
 td.cell:hover { background: var(--cell-hover); }
@@ -151,8 +169,6 @@ td.cell.thick-right { border-right: 2px solid var(--grid-thick); }
 td.cell.thick-bottom { border-bottom: 2px solid var(--grid-thick); }
 td.cell.filled { background: var(--filled); }
 td.cell.filled:hover { background: var(--filled); }
-td.cell.filled.dark-right { border-right-color: #000; }
-td.cell.filled.dark-bottom { border-bottom-color: #000; }
 
 td.cell.marked::after {
   content: '\00d7';
@@ -212,7 +228,7 @@ td.cell.marked::after {
   text-align: center;
   padding: 0.6rem;
   border: 1.5px solid var(--grid-line);
-  background: #fff;
+  background: var(--cell-bg);
   font-family: 'DM Mono', monospace;
   font-size: 0.9rem;
   cursor: pointer;
@@ -222,7 +238,7 @@ td.cell.marked::after {
 
 .mode-btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
 .mode-btn:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
-.mode-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+.mode-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
 .controls-row {
   display: flex;
@@ -236,7 +252,7 @@ td.cell.marked::after {
   padding: 0.45rem 0.65rem;
   border: 1.5px solid var(--grid-line);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--cell-bg);
   color: var(--ink);
   flex: 1;
   min-width: 0;
@@ -254,7 +270,7 @@ select, button {
   padding: 0.45rem 0.65rem;
   border: 1.5px solid var(--grid-line);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--cell-bg);
   color: var(--ink);
   cursor: pointer;
   transition: all 0.15s;
@@ -317,6 +333,7 @@ button:active { transform: scale(0.97); }
   <div class="timer-info">
     <span id="timerDisplay">0:00</span>
     <span id="cellCount"></span>
+    <button id="darkToggle" style="border:none; background:none; padding:0; cursor:pointer; font-size:1rem; line-height:1; color:var(--ink-light);" title="Toggle dark mode">&#9790;</button>
   </div>
 </div>
 
@@ -329,7 +346,7 @@ button:active { transform: scale(0.97); }
       <option value="15">15&times;15</option>
       <option value="custom">Custom…</option>
     </select>
-    <input type="number" id="customSize" min="15" max="50" value="20" placeholder="15–50" style="display:none; width:5.5rem; font-family:'DM Mono',monospace; font-size:0.85rem; padding:0.45rem 0.65rem; border:1.5px solid var(--grid-line); border-radius:var(--radius); background:#fff; color:var(--ink); outline:none;">
+    <input type="number" id="customSize" min="15" max="50" value="20" placeholder="15–50" style="display:none; width:5.5rem; font-family:'DM Mono',monospace; font-size:0.85rem; padding:0.45rem 0.65rem; border:1.5px solid var(--grid-line); border-radius:var(--radius); background:var(--cell-bg); color:var(--ink); outline:none;">
     <button id="retryBtn">Retry</button>
     <button class="btn-accent" id="newBtn">New</button>
   </div>
@@ -359,6 +376,16 @@ button:active { transform: scale(0.97); }
 
 <script>
 (function () {
+  // Dark mode
+  const darkToggle = document.getElementById('darkToggle');
+  function applyDark(on) {
+    document.documentElement.classList.toggle('dark', on);
+    darkToggle.textContent = on ? '☀' : '☾';
+    localStorage.setItem('dark', on ? '1' : '');
+  }
+  applyDark(localStorage.getItem('dark') === '1');
+  darkToggle.addEventListener('click', () => applyDark(!document.documentElement.classList.contains('dark')));
+
   let puzzle = null;
   let grid = [];
   let mode = 'fill';
@@ -512,17 +539,10 @@ button:active { transform: scale(0.97); }
   }
 
   function refreshCell(r, c) {
-    const size = puzzle.size;
-    for (const [nr, nc] of [[r, c], [r, c - 1], [r - 1, c]]) {
-      if (nr < 0 || nc < 0 || nr >= size || nc >= size) continue;
-      const td = document.querySelector(`td.cell[data-r="${nr}"][data-c="${nc}"]`);
-      if (!td) continue;
-      const filled = grid[nr][nc] === 1;
-      td.classList.toggle('filled', filled);
-      td.classList.toggle('marked', grid[nr][nc] === 2);
-      td.classList.toggle('dark-right', filled && nc + 1 < size && grid[nr][nc + 1] === 1);
-      td.classList.toggle('dark-bottom', filled && nr + 1 < size && grid[nr + 1][nc] === 1);
-    }
+    const td = document.querySelector(`td.cell[data-r="${r}"][data-c="${c}"]`);
+    if (!td) return;
+    td.classList.toggle('filled', grid[r][c] === 1);
+    td.classList.toggle('marked', grid[r][c] === 2);
   }
 
   function getGroups(line) {
