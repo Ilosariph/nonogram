@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nonogram</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,700&display=swap" rel="stylesheet">
@@ -92,11 +92,15 @@ h1 span { color: var(--accent); }
 /* ── Puzzle area ── */
 .puzzle-wrap {
   width: 100%;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   justify-content: center;
   padding: 0.5rem 0.75rem 0.5rem;
-  -webkit-overflow-scrolling: touch;
+}
+
+.puzzle-scaler {
+  display: inline-block;
+  transform-origin: top center;
 }
 
 .puzzle-table {
@@ -414,6 +418,29 @@ button:active { transform: scale(0.97); }
   }
   $$('.mode-btn').forEach(btn => btn.addEventListener('click', toggleMode));
 
+  function scalePuzzle() {
+    const wrap = document.getElementById('puzzleWrap');
+    const scaler = wrap.querySelector('.puzzle-scaler');
+    if (!scaler) return;
+    scaler.style.transform = '';
+    const tableW = scaler.scrollWidth;
+    const tableH = scaler.scrollHeight;
+    const style = getComputedStyle(wrap);
+    const padH = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const available = wrap.clientWidth - padH;
+    if (tableW > available) {
+      const ratio = available / tableW;
+      scaler.style.transformOrigin = 'top center';
+      scaler.style.transform = `scale(${ratio})`;
+      scaler.style.marginBottom = `-${tableH * (1 - ratio)}px`;
+    } else {
+      scaler.style.transform = '';
+      scaler.style.marginBottom = '';
+    }
+  }
+
+  window.addEventListener('resize', scalePuzzle);
+
   async function loadPuzzle() {
     solved = false;
     $('#winBanner').classList.remove('show');
@@ -485,7 +512,8 @@ button:active { transform: scale(0.97); }
     }
 
     html += '</table>';
-    $('#puzzleWrap').innerHTML = html;
+    $('#puzzleWrap').innerHTML = `<div class="puzzle-scaler">${html}</div>`;
+    scalePuzzle();
     bindCells();
   }
 
@@ -609,6 +637,11 @@ button:active { transform: scale(0.97); }
     if (data.correct) {
       solved = true;
       clearInterval(timerInterval);
+      for (let r = 0; r < puzzle.size; r++) {
+        for (let c = 0; c < puzzle.size; c++) {
+          if (grid[r][c] === 0) { grid[r][c] = 2; refreshCell(r, c); }
+        }
+      }
       $('#winBanner').classList.add('show');
       launchConfetti();
     }
