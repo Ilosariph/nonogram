@@ -397,6 +397,8 @@ button:active { transform: scale(0.97); }
   let timerSec = 0;
   let timerInterval = null;
   let painting = null;
+  let dragStart = null;
+  let dragDir = null; // 'row' | 'col' | null
 
   const $ = s => document.querySelector(s);
   const $$ = s => document.querySelectorAll(s);
@@ -522,8 +524,8 @@ button:active { transform: scale(0.97); }
       td.addEventListener('pointerdown', onPointerDown);
       td.addEventListener('pointerenter', onPointerEnter);
     });
-    document.addEventListener('pointerup', () => { painting = null; });
-    document.addEventListener('pointercancel', () => { painting = null; });
+    document.addEventListener('pointerup', () => { painting = null; dragStart = null; dragDir = null; });
+    document.addEventListener('pointercancel', () => { painting = null; dragStart = null; dragDir = null; });
   }
 
   function onPointerDown(e) {
@@ -532,13 +534,22 @@ button:active { transform: scale(0.97); }
     const r = +e.currentTarget.dataset.r;
     const c = +e.currentTarget.dataset.c;
     painting = toggleCell(r, c);
+    dragStart = { r, c };
+    dragDir = null;
     e.currentTarget.setPointerCapture?.(e.pointerId);
     e.currentTarget.releasePointerCapture?.(e.pointerId);
   }
 
   function onPointerEnter(e) {
     if (painting === null || solved) return;
-    applyCell(+e.currentTarget.dataset.r, +e.currentTarget.dataset.c, painting);
+    const r = +e.currentTarget.dataset.r;
+    const c = +e.currentTarget.dataset.c;
+    if (dragDir === null && (r !== dragStart.r || c !== dragStart.c)) {
+      dragDir = r !== dragStart.r ? 'col' : 'row';
+    }
+    if (dragDir === 'row' && r !== dragStart.r) return;
+    if (dragDir === 'col' && c !== dragStart.c) return;
+    applyCell(r, c, painting);
   }
 
   function toggleCell(r, c) {
