@@ -526,6 +526,37 @@ button:active { transform: scale(0.97); }
     });
     document.addEventListener('pointerup', () => { painting = null; dragStart = null; dragDir = null; });
     document.addEventListener('pointercancel', () => { painting = null; dragStart = null; dragDir = null; });
+    document.addEventListener('pointermove', onDocPointerMove);
+  }
+
+  function onDocPointerMove(e) {
+    if (painting === null || solved || dragDir === null) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (el && el.classList.contains('cell')) return; // handled by pointerenter
+    if (dragDir === 'row') {
+      // find which column the pointer is closest to by scanning cells in dragStart.r
+      const cells = Array.from(document.querySelectorAll(`td.cell[data-r="${dragStart.r}"]`));
+      if (!cells.length) return;
+      let best = null, bestDist = Infinity;
+      for (const td of cells) {
+        const rect = td.getBoundingClientRect();
+        const cx = (rect.left + rect.right) / 2;
+        const dist = Math.abs(e.clientX - cx);
+        if (dist < bestDist) { bestDist = dist; best = td; }
+      }
+      if (best) applyCell(dragStart.r, +best.dataset.c, painting);
+    } else {
+      const cells = Array.from(document.querySelectorAll(`td.cell[data-c="${dragStart.c}"]`));
+      if (!cells.length) return;
+      let best = null, bestDist = Infinity;
+      for (const td of cells) {
+        const rect = td.getBoundingClientRect();
+        const cy = (rect.top + rect.bottom) / 2;
+        const dist = Math.abs(e.clientY - cy);
+        if (dist < bestDist) { bestDist = dist; best = td; }
+      }
+      if (best) applyCell(+best.dataset.r, dragStart.c, painting);
+    }
   }
 
   function onPointerDown(e) {
@@ -547,9 +578,10 @@ button:active { transform: scale(0.97); }
     if (dragDir === null && (r !== dragStart.r || c !== dragStart.c)) {
       dragDir = r !== dragStart.r ? 'col' : 'row';
     }
-    if (dragDir === 'row' && r !== dragStart.r) return;
     if (dragDir === 'col' && c !== dragStart.c) return;
-    applyCell(r, c, painting);
+    const tr = dragDir === 'row' ? dragStart.r : r;
+    const tc = dragDir === 'col' ? dragStart.c : c;
+    applyCell(tr, tc, painting);
   }
 
   function toggleCell(r, c) {
