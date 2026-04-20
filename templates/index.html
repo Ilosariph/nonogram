@@ -778,6 +778,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
         const el = document.querySelector(`[data-clue-id="r${r}-${i}"]`);
         if (el) el.classList.toggle('done', done);
       }
+      if (done && livesMode) autoMarkRow(r);
     }
     for (let c = 0; c < size; c++) {
       const col = [];
@@ -786,6 +787,25 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
       for (let i = 0; i < puzzle.col_clues[c].length; i++) {
         const el = document.querySelector(`[data-clue-id="c${c}-${i}"]`);
         if (el) el.classList.toggle('done', done);
+      }
+      if (done && livesMode) autoMarkCol(c);
+    }
+  }
+
+  function autoMarkRow(r) {
+    for (let c = 0; c < puzzle.size; c++) {
+      if (grid[r][c] === 0) {
+        grid[r][c] = 2;
+        refreshCell(r, c);
+      }
+    }
+  }
+
+  function autoMarkCol(c) {
+    for (let r = 0; r < puzzle.size; r++) {
+      if (grid[r][c] === 0) {
+        grid[r][c] = 2;
+        refreshCell(r, c);
       }
     }
   }
