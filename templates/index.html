@@ -517,9 +517,9 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     lives = Math.max(0, lives - 1);
     updateHeartsDisplay();
     setTimeout(() => {
-      if (td) td.classList.remove('cell-error');
+      if (td) { td.classList.remove('cell-error'); void td.offsetWidth; }
       $('#puzzleWrap').classList.remove('puzzle-shake');
-      const correct = solution[r][c];
+      const correct = solution[r][c] === 1 ? 1 : 2;
       grid[r][c] = correct;
       revealedCells.add(`${r},${c}`);
       refreshCell(r, c);
