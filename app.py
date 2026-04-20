@@ -75,14 +75,16 @@ def index():
 def puzzle():
     seed = request.args.get("seed", "")
     size = request.args.get("size", "5", type=int)
+    lives_mode = request.args.get("lives", "0") == "1"
     if not seed:
         seed = hex(random.randint(0, 0xFFFFFFFF))[2:]
     data = generate_puzzle(seed, size)
-    # Don't send solution to client directly — send a hash for validation
     solution = data.pop("solution")
-    # Flatten solution into a check string
-    flat = "".join(str(c) for row in solution for c in row)
-    data["solution_hash"] = hashlib.sha256(flat.encode()).hexdigest()
+    if lives_mode:
+        data["solution"] = solution
+    else:
+        flat = "".join(str(c) for row in solution for c in row)
+        data["solution_hash"] = hashlib.sha256(flat.encode()).hexdigest()
     return jsonify(data)
 
 
