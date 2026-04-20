@@ -500,6 +500,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     if (!livesMode || !solution) return true;
     if (livesAnimating) return false;
     if (revealedCells.has(`${r},${c}`)) return true;
+    if (grid[r][c] !== 0) return true;
     const wrong =
       (mode === 'fill' && intendedValue === 1 && solution[r][c] === 0) ||
       (mode === 'mark' && intendedValue === 2 && solution[r][c] === 1);
@@ -666,7 +667,10 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   function onDocPointerMove(e) {
     if (painting === null || solved || dragDir === null) return;
     const el = document.elementFromPoint(e.clientX, e.clientY);
-    if (el && el.classList.contains('cell')) return; // handled by pointerenter
+    if (el && el.classList.contains('cell')) {
+      if (dragDir === 'row') return; // handled by pointerenter
+      if (dragDir === 'col' && +el.dataset.c === dragStart.c) return; // handled by pointerenter
+    }
     if (dragDir === 'row') {
       // find which column the pointer is closest to by scanning cells in dragStart.r
       const cells = Array.from(document.querySelectorAll(`td.cell[data-r="${dragStart.r}"]`));
@@ -723,7 +727,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     let next;
     if (mode === 'fill') { next = current === 1 ? 0 : 1; }
     else { next = current === 2 ? 0 : 2; }
-    if (livesMode && next === 0 && current !== 0) return null;
+    if (livesMode && current !== 0) return null;
     if (!checkLivesMove(r, c, next)) return null;
     grid[r][c] = next;
     refreshCell(r, c);
@@ -734,7 +738,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   }
 
   function applyCell(r, c, value) {
-    if (livesMode && value === 0) return;
+    if (livesMode && grid[r][c] !== 0) return;
     if (grid[r][c] === value) return;
     if (mode === 'fill' && value !== 0 && value !== 1) return;
     if (mode === 'mark' && value !== 0 && value !== 2) return;
