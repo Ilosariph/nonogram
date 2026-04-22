@@ -427,7 +427,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 
 <div class="bottom-controls">
   <div class="controls-row">
-    <button class="mode-btn" id="livesModeBtn" style="flex:1; border-radius:var(--radius);">&#9829; Lives Mode</button>
+    <button class="mode-btn active" id="livesModeBtn" style="flex:1; border-radius:var(--radius);">&#9829; Lives Mode</button>
   </div>
   <div class="mode-bar">
     <button class="mode-btn" data-mode="mark">&times; Mark</button>
@@ -461,7 +461,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   let painting = null;
   let dragStart = null;
   let dragDir = null; // 'row' | 'col' | null
-  let livesMode = false;
+  let livesMode = true;
   let lives = 3;
   let solution = null;
   let livesAnimating = false;
