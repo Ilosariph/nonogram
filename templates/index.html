@@ -225,7 +225,50 @@ td.cell.marked::after {
   gap: 0.5rem;
 }
 
-.mode-bar { display: flex; gap: 0; }
+.mode-slider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mode-slider .mode-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--ink-light);
+  transition: color 0.2s;
+}
+
+.mode-slider[data-mode="mark"] .mode-icon[data-mode="mark"],
+.mode-slider[data-mode="fill"] .mode-icon[data-mode="fill"] {
+  color: var(--ink);
+}
+
+.mode-slider-track {
+  position: relative;
+  width: 52px;
+  height: 26px;
+  background: var(--cell-bg);
+  border: 1.5px solid var(--grid-line);
+  border-radius: 13px;
+}
+
+.mode-slider-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: var(--ink);
+  border-radius: 50%;
+  transition: left 0.2s ease;
+}
+
+.mode-slider[data-mode="fill"] .mode-slider-thumb {
+  left: calc(100% - 21px);
+}
 
 .mode-btn {
   flex: 1;
@@ -240,8 +283,7 @@ td.cell.marked::after {
   color: var(--ink-light);
 }
 
-.mode-btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
-.mode-btn:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
+.mode-btn { border-radius: var(--radius); }
 .mode-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 
 .controls-row {
@@ -429,9 +471,12 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   <div class="controls-row">
     <button class="mode-btn active" id="livesModeBtn" style="flex:1; border-radius:var(--radius);">&#9829; Lives Mode</button>
   </div>
-  <div class="mode-bar">
-    <button class="mode-btn" data-mode="mark">&times; Mark</button>
-    <button class="mode-btn active" data-mode="fill">&#9632; Fill</button>
+  <div class="mode-slider" id="modeSlider" data-mode="fill">
+    <span class="mode-icon" data-mode="mark">&#x2715;</span>
+    <div class="mode-slider-track">
+      <div class="mode-slider-thumb"></div>
+    </div>
+    <span class="mode-icon" data-mode="fill">&#9632;</span>
   </div>
   <div class="controls-row">
     <button id="markDoneRowsBtn" style="flex:1">Mark empties in done rows/cols</button>
@@ -483,9 +528,9 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 
   function toggleMode() {
     mode = mode === 'fill' ? 'mark' : 'fill';
-    $$('.mode-btn[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    $('#modeSlider').dataset.mode = mode;
   }
-  $$('.mode-btn[data-mode]').forEach(btn => btn.addEventListener('click', toggleMode));
+  $('#modeSlider').addEventListener('click', toggleMode);
 
   function updateHeartsDisplay() {
     const el = $('#heartsDisplay');
@@ -854,7 +899,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 
   function setMode(m) {
     mode = m;
-    $$('.mode-btn[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    $('#modeSlider').dataset.mode = mode;
   }
 
   $('#markDoneRowsBtn').addEventListener('click', () => {
