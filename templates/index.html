@@ -460,7 +460,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 .modal-sub { font-size: 0.75rem; color: var(--ink-muted); }
 .modal-actions { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.25rem; }
 
-#heartsDisplay { font-size: 1rem; letter-spacing: 0.15em; color: var(--accent); }
+#heartsDisplay { font-size: 1.35rem; letter-spacing: 0.15em; color: var(--accent); text-align: center; }
 .heart-lost { color: var(--ink-muted); }
 </style>
 </head>
@@ -508,9 +508,8 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   <div class="seed-display">
     <span id="seedDisplay"></span>
     <span id="timerDisplay">0:00</span>
-    <span id="heartsDisplay" style="display:none"></span>
-    <span id="cellCount"></span>
   </div>
+  <div id="heartsDisplay" style="display:none"></div>
 </div>
 
 <!-- grows on mobile to push puzzle + controls toward bottom of screen -->
@@ -910,10 +909,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     return true;
   }
 
-  function updateCellCount() {
-    if (!puzzle) return;
-    $('#cellCount').textContent = `${grid.flat().filter(v => v === 1).length} filled`;
-  }
+  function updateCellCount() {}
 
   async function checkWin() {
     if (solved) return;
