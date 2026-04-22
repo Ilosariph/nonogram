@@ -225,66 +225,115 @@ td.cell.marked::after {
   gap: 0.5rem;
 }
 
-.mode-slider {
+.mode-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
+}
+
+.mode-slider {
+  position: relative;
   cursor: pointer;
   user-select: none;
 }
 
-.mode-slider .mode-icon {
-  font-size: 1.15rem;
-  line-height: 1;
-  color: var(--ink-light);
-  transition: color 0.2s;
-}
-
-.mode-slider[data-mode="mark"] .mode-icon[data-mode="mark"],
-.mode-slider[data-mode="fill"] .mode-icon[data-mode="fill"] {
-  color: var(--ink);
-}
-
 .mode-slider-track {
   position: relative;
-  width: 52px;
-  height: 26px;
+  width: 96px;
+  height: 36px;
   background: var(--cell-bg);
   border: 1.5px solid var(--grid-line);
-  border-radius: 13px;
+  border-radius: 18px;
 }
 
 .mode-slider-thumb {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 18px;
-  height: 18px;
+  width: 44px;
+  height: 28px;
   background: var(--ink);
-  border-radius: 50%;
+  border-radius: 14px;
   transition: left 0.2s ease;
+  z-index: 0;
 }
 
 .mode-slider[data-mode="fill"] .mode-slider-thumb {
-  left: calc(100% - 21px);
+  left: calc(100% - 47px);
 }
 
-.mode-btn {
-  flex: 1;
-  text-align: center;
-  padding: 0.6rem;
-  border: 1.5px solid var(--grid-line);
-  background: var(--cell-bg);
-  font-family: 'DM Mono', monospace;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.15s;
+.mode-side {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  z-index: 1;
   color: var(--ink-light);
+  transition: color 0.2s;
 }
 
-.mode-btn { border-radius: var(--radius); }
-.mode-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.mode-side[data-mode="mark"] { left: 0; }
+.mode-side[data-mode="fill"] { right: 0; }
+
+.mode-slider[data-mode="mark"] .mode-side[data-mode="mark"],
+.mode-slider[data-mode="fill"] .mode-side[data-mode="fill"] {
+  color: var(--bg);
+}
+
+.settings-wrap {
+  position: relative;
+}
+
+.settings-btn {
+  border: none;
+  background: none;
+  padding: 0.35rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--ink-light);
+  line-height: 1;
+  transition: color 0.15s;
+}
+.settings-btn:hover { color: var(--ink); border: none; }
+.settings-btn:active { transform: scale(0.93); }
+
+.settings-panel {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--bg);
+  border: 1.5px solid var(--grid-thick);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-width: 210px;
+  z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  animation: pop 0.2s ease;
+}
+
+.settings-item {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--grid-line);
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  transition: background 0.12s, color 0.12s;
+  border-radius: 0;
+}
+.settings-item:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+.settings-item:last-child { border-bottom: none; border-radius: 0 0 var(--radius) var(--radius); }
+.settings-item:hover { background: var(--cell-bg); color: var(--ink); }
+.settings-item.active { color: var(--ink); }
 
 .controls-row {
   display: flex;
@@ -468,18 +517,21 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 <div class="win-banner" id="winBanner">Solved!</div>
 
 <div class="bottom-controls">
-  <div class="controls-row">
-    <button class="mode-btn active" id="livesModeBtn" style="flex:1; border-radius:var(--radius);">&#9829; Lives Mode</button>
-  </div>
-  <div class="mode-slider" id="modeSlider" data-mode="fill">
-    <span class="mode-icon" data-mode="mark">&#x2715;</span>
-    <div class="mode-slider-track">
-      <div class="mode-slider-thumb"></div>
+  <div class="mode-row">
+    <div class="mode-slider" id="modeSlider" data-mode="fill">
+      <div class="mode-slider-track">
+        <div class="mode-slider-thumb"></div>
+        <span class="mode-side" data-mode="mark">&#x2715;</span>
+        <span class="mode-side" data-mode="fill">&#9632;</span>
+      </div>
     </div>
-    <span class="mode-icon" data-mode="fill">&#9632;</span>
-  </div>
-  <div class="controls-row">
-    <button id="markDoneRowsBtn" style="flex:1">Mark empties in done rows/cols</button>
+    <div class="settings-wrap">
+      <button class="settings-btn" id="settingsBtn" title="Settings">&#9881;</button>
+      <div class="settings-panel" id="settingsPanel" style="display:none">
+        <button class="settings-item active" id="livesModeItem">&#9829; Lives Mode</button>
+        <button class="settings-item" id="markDoneRowsBtn">Mark empties in done rows/cols</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -928,9 +980,17 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     else if (e.key === 'x' || e.key === 'X') setMode('mark');
   });
 
-  $('#livesModeBtn').addEventListener('click', () => {
+  const settingsPanel = $('#settingsPanel');
+  $('#settingsBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    settingsPanel.style.display = settingsPanel.style.display === 'none' ? '' : 'none';
+  });
+  document.addEventListener('click', () => { settingsPanel.style.display = 'none'; });
+  settingsPanel.addEventListener('click', e => e.stopPropagation());
+
+  $('#livesModeItem').addEventListener('click', () => {
     livesMode = !livesMode;
-    $('#livesModeBtn').classList.toggle('active', livesMode);
+    $('#livesModeItem').classList.toggle('active', livesMode);
     loadPuzzle();
   });
 
