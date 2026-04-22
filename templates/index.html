@@ -225,13 +225,6 @@ td.cell.marked::after {
   gap: 0.5rem;
 }
 
-.mode-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
 .mode-slider {
   position: relative;
   cursor: pointer;
@@ -240,27 +233,27 @@ td.cell.marked::after {
 
 .mode-slider-track {
   position: relative;
-  width: 96px;
-  height: 36px;
+  width: 115px;
+  height: 43px;
   background: var(--cell-bg);
   border: 1.5px solid var(--grid-line);
-  border-radius: 18px;
+  border-radius: 22px;
 }
 
 .mode-slider-thumb {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 44px;
-  height: 28px;
+  top: 4px;
+  left: 4px;
+  width: 53px;
+  height: 34px;
   background: var(--ink);
-  border-radius: 14px;
+  border-radius: 17px;
   transition: left 0.2s ease;
   z-index: 0;
 }
 
 .mode-slider[data-mode="fill"] .mode-slider-thumb {
-  left: calc(100% - 47px);
+  left: calc(100% - 57px);
 }
 
 .mode-side {
@@ -304,7 +297,7 @@ td.cell.marked::after {
 
 .settings-panel {
   position: absolute;
-  bottom: calc(100% + 0.5rem);
+  top: calc(100% + 0.5rem);
   right: 0;
   background: var(--bg);
   border: 1.5px solid var(--grid-thick);
@@ -488,6 +481,13 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     <span id="timerDisplay">0:00</span>
     <span id="cellCount"></span>
     <button id="darkToggle" style="border:none; background:none; padding:0; cursor:pointer; font-size:1rem; line-height:1; color:var(--ink-light);" title="Toggle dark mode">&#9790;</button>
+    <div class="settings-wrap">
+      <button class="settings-btn" id="settingsBtn" title="Settings">&#9881;</button>
+      <div class="settings-panel" id="settingsPanel" style="display:none">
+        <button class="settings-item active" id="livesModeItem">&#9829; Lives Mode</button>
+        <button class="settings-item" id="markDoneRowsBtn">Mark empties in done rows/cols</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -517,20 +517,11 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 <div class="win-banner" id="winBanner">Solved!</div>
 
 <div class="bottom-controls">
-  <div class="mode-row">
-    <div class="mode-slider" id="modeSlider" data-mode="fill">
-      <div class="mode-slider-track">
-        <div class="mode-slider-thumb"></div>
-        <span class="mode-side" data-mode="mark">&#x2715;</span>
-        <span class="mode-side" data-mode="fill">&#9632;</span>
-      </div>
-    </div>
-    <div class="settings-wrap">
-      <button class="settings-btn" id="settingsBtn" title="Settings">&#9881;</button>
-      <div class="settings-panel" id="settingsPanel" style="display:none">
-        <button class="settings-item active" id="livesModeItem">&#9829; Lives Mode</button>
-        <button class="settings-item" id="markDoneRowsBtn">Mark empties in done rows/cols</button>
-      </div>
+  <div class="mode-slider" id="modeSlider" data-mode="fill">
+    <div class="mode-slider-track">
+      <div class="mode-slider-thumb"></div>
+      <span class="mode-side" data-mode="mark">&#x2715;</span>
+      <span class="mode-side" data-mode="fill">&#9632;</span>
     </div>
   </div>
 </div>
