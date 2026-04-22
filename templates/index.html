@@ -222,6 +222,7 @@ td.cell.marked::after {
   padding: 0.35rem 1rem 0.75rem;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -370,9 +371,12 @@ button:active { transform: scale(0.97); }
 .btn-accent:hover { background: var(--accent-hover); color: #fff; border-color: var(--accent-hover); }
 
 .seed-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
   font-size: 0.7rem;
   color: var(--ink-muted);
-  text-align: center;
 }
 
 .seed-display code {
@@ -477,9 +481,6 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 <div class="top-bar">
   <h1>Nono<span>gram</span></h1>
   <div class="timer-info">
-    <span id="heartsDisplay" style="display:none"></span>
-    <span id="timerDisplay">0:00</span>
-    <span id="cellCount"></span>
     <button id="darkToggle" style="border:none; background:none; padding:0; cursor:pointer; font-size:1rem; line-height:1; color:var(--ink-light);" title="Toggle dark mode">&#9790;</button>
     <div class="settings-wrap">
       <button class="settings-btn" id="settingsBtn" title="Settings">&#9881;</button>
@@ -504,7 +505,12 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     <button id="retryBtn">Retry</button>
     <button class="btn-accent" id="newBtn">New</button>
   </div>
-  <div class="seed-display" id="seedDisplay"></div>
+  <div class="seed-display">
+    <span id="seedDisplay"></span>
+    <span id="timerDisplay">0:00</span>
+    <span id="heartsDisplay" style="display:none"></span>
+    <span id="cellCount"></span>
+  </div>
 </div>
 
 <!-- grows on mobile to push puzzle + controls toward bottom of screen -->
