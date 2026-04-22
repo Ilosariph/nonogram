@@ -1,11 +1,18 @@
 services:
   nonogram:
-    build: .
+    image: ${IMAGE_NAME:-dockerregistry.simon-wick.ch/nonogram}:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    ports:
-      - "5000:5000"
+    networks:
+      - proxy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:5000/')
       interval: 30s
       timeout: 5s
       retries: 3
+networks:
+  proxy:
+    external: true
