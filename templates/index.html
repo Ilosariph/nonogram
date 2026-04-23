@@ -460,7 +460,10 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 .modal-sub { font-size: 0.75rem; color: var(--ink-muted); }
 .modal-actions { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.25rem; }
 
-#heartsDisplay { font-size: 1.35rem; letter-spacing: 0.15em; color: var(--accent); text-align: center; }
+#heartsDisplay, #heartsDisplayMobile { font-size: 1.35rem; letter-spacing: 0.15em; color: var(--accent); text-align: center; }
+#heartsDisplayMobile { margin-bottom: 0.4rem; }
+@media (max-width: 699px) { #heartsDisplay { display: none !important; } }
+@media (min-width: 700px) { #heartsDisplayMobile { display: none !important; } }
 .heart-lost { color: var(--ink-muted); }
 </style>
 </head>
@@ -516,6 +519,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 <!-- grows on mobile to push puzzle + controls toward bottom of screen -->
 <div class="mobile-spacer"></div>
 
+<div id="heartsDisplayMobile" style="display:none"></div>
 <div class="puzzle-wrap" id="puzzleWrap">
   <p style="color:var(--ink-muted); padding:3rem 1rem; text-align:center;">Loading puzzle&hellip;</p>
 </div>
@@ -582,12 +586,14 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   $('#modeSlider').addEventListener('click', toggleMode);
 
   function updateHeartsDisplay() {
-    const el = $('#heartsDisplay');
-    if (!livesMode) { el.style.display = 'none'; return; }
-    el.style.display = '';
-    el.innerHTML = [0, 1, 2].map(i =>
+    const html = [0, 1, 2].map(i =>
       `<span class="${i < lives ? '' : 'heart-lost'}">&#9829;</span>`
     ).join('');
+    [$('#heartsDisplay'), $('#heartsDisplayMobile')].forEach(el => {
+      if (!livesMode) { el.style.display = 'none'; return; }
+      el.style.display = '';
+      el.innerHTML = html;
+    });
   }
 
   function checkLivesMove(r, c, intendedValue) {
