@@ -486,6 +486,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
       <button class="settings-btn" id="settingsBtn" title="Settings">&#9881;</button>
       <div class="settings-panel" id="settingsPanel" style="display:none">
         <button class="settings-item active" id="livesModeItem">&#9829; Lives Mode</button>
+        <button class="settings-item" id="standardModeItem">Standard Mode</button>
         <button class="settings-item" id="markDoneRowsBtn">Mark empties in done rows/cols</button>
       </div>
     </div>
@@ -981,11 +982,14 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   document.addEventListener('click', () => { settingsPanel.style.display = 'none'; });
   settingsPanel.addEventListener('click', e => e.stopPropagation());
 
-  $('#livesModeItem').addEventListener('click', () => {
-    livesMode = !livesMode;
+  function setLivesMode(on) {
+    livesMode = on;
     $('#livesModeItem').classList.toggle('active', livesMode);
+    $('#standardModeItem').classList.toggle('active', !livesMode);
     loadPuzzle();
-  });
+  }
+  $('#livesModeItem').addEventListener('click', () => setLivesMode(true));
+  $('#standardModeItem').addEventListener('click', () => setLivesMode(false));
 
   $('#goRetryBtn').addEventListener('click', () => {
     hideGameOverModal();
