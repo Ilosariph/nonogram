@@ -223,27 +223,112 @@ td.cell.marked::after {
   padding: 0.35rem 1rem 0.75rem;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.mode-bar { display: flex; gap: 0; }
-
-.mode-btn {
-  flex: 1;
-  text-align: center;
-  padding: 0.6rem;
-  border: 1.5px solid var(--grid-line);
-  background: var(--cell-bg);
-  font-family: 'DM Mono', monospace;
-  font-size: 0.9rem;
+.mode-slider {
+  position: relative;
   cursor: pointer;
-  transition: all 0.15s;
-  color: var(--ink-light);
+  user-select: none;
 }
 
-.mode-btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
-.mode-btn:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
-.mode-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.mode-slider-track {
+  position: relative;
+  width: 115px;
+  height: 43px;
+  background: var(--cell-bg);
+  border: 1.5px solid var(--grid-line);
+  border-radius: 22px;
+}
+
+.mode-slider-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 53px;
+  height: 34px;
+  background: var(--ink);
+  border-radius: 17px;
+  transition: left 0.2s ease;
+  z-index: 0;
+}
+
+.mode-slider[data-mode="fill"] .mode-slider-thumb {
+  left: calc(100% - 57px);
+}
+
+.mode-side {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  z-index: 1;
+  color: var(--ink-light);
+  transition: color 0.2s;
+}
+
+.mode-side[data-mode="mark"] { left: 0; }
+.mode-side[data-mode="fill"] { right: 0; }
+
+.mode-slider[data-mode="mark"] .mode-side[data-mode="mark"],
+.mode-slider[data-mode="fill"] .mode-side[data-mode="fill"] {
+  color: var(--bg);
+}
+
+.settings-wrap {
+  position: relative;
+}
+
+.settings-btn {
+  border: none;
+  background: none;
+  padding: 0.35rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--ink-light);
+  line-height: 1;
+  transition: color 0.15s;
+}
+.settings-btn:hover { color: var(--ink); border: none; }
+.settings-btn:active { transform: scale(0.93); }
+
+.settings-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--bg);
+  border: 1.5px solid var(--grid-thick);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-width: 210px;
+  z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  animation: pop 0.2s ease;
+}
+
+.settings-item {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--grid-line);
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  transition: background 0.12s, color 0.12s;
+  border-radius: 0;
+}
+.settings-item:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+.settings-item:last-child { border-bottom: none; border-radius: 0 0 var(--radius) var(--radius); }
+.settings-item:hover { background: var(--cell-bg); color: var(--ink); }
+.settings-item.active { color: var(--ink); }
 
 .controls-row {
   display: flex;
@@ -287,9 +372,12 @@ button:active { transform: scale(0.97); }
 .btn-accent:hover { background: var(--accent-hover); color: #fff; border-color: var(--accent-hover); }
 
 .seed-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
   font-size: 0.7rem;
   color: var(--ink-muted);
-  text-align: center;
 }
 
 .seed-display code {
@@ -373,7 +461,10 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 .modal-sub { font-size: 0.75rem; color: var(--ink-muted); }
 .modal-actions { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.25rem; }
 
-#heartsDisplay { font-size: 1rem; letter-spacing: 0.15em; color: var(--accent); }
+#heartsDisplay, #heartsDisplayMobile { font-size: 1.35rem; letter-spacing: 0.15em; color: var(--accent); text-align: center; }
+#heartsDisplayMobile { margin-bottom: 0.4rem; }
+@media (max-width: 699px) { #heartsDisplay { display: none !important; } }
+@media (min-width: 700px) { #heartsDisplayMobile { display: none !important; } }
 .heart-lost { color: var(--ink-muted); }
 </style>
 </head>
@@ -394,10 +485,15 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 <div class="top-bar">
   <h1>Nono<span>gram</span></h1>
   <div class="timer-info">
-    <span id="heartsDisplay" style="display:none"></span>
-    <span id="timerDisplay">0:00</span>
-    <span id="cellCount"></span>
     <button id="darkToggle" style="border:none; background:none; padding:0; cursor:pointer; font-size:1rem; line-height:1; color:var(--ink-light);" title="Toggle dark mode">&#9790;</button>
+    <div class="settings-wrap">
+      <button class="settings-btn" id="settingsBtn" title="Settings">&#9881;</button>
+      <div class="settings-panel" id="settingsPanel" style="display:none">
+        <button class="settings-item active" id="livesModeItem">&#9829; Lives Mode</button>
+        <button class="settings-item" id="standardModeItem">Standard Mode</button>
+        <button class="settings-item" id="markDoneRowsBtn">Mark empties in done rows/cols</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -414,12 +510,17 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     <button id="retryBtn">Retry</button>
     <button class="btn-accent" id="newBtn">New</button>
   </div>
-  <div class="seed-display" id="seedDisplay"></div>
+  <div class="seed-display">
+    <span id="seedDisplay"></span>
+    <span id="timerDisplay">0:00</span>
+  </div>
+  <div id="heartsDisplay" style="display:none"></div>
 </div>
 
 <!-- grows on mobile to push puzzle + controls toward bottom of screen -->
 <div class="mobile-spacer"></div>
 
+<div id="heartsDisplayMobile" style="display:none"></div>
 <div class="puzzle-wrap" id="puzzleWrap">
   <p style="color:var(--ink-muted); padding:3rem 1rem; text-align:center;">Loading puzzle&hellip;</p>
 </div>
@@ -427,15 +528,12 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 <div class="win-banner" id="winBanner">Solved!</div>
 
 <div class="bottom-controls">
-  <div class="controls-row">
-    <button class="mode-btn active" id="livesModeBtn" style="flex:1; border-radius:var(--radius);">&#9829; Lives Mode</button>
-  </div>
-  <div class="mode-bar">
-    <button class="mode-btn" data-mode="mark">&times; Mark</button>
-    <button class="mode-btn active" data-mode="fill">&#9632; Fill</button>
-  </div>
-  <div class="controls-row">
-    <button id="markDoneRowsBtn" style="flex:1">Mark empties in done rows/cols</button>
+  <div class="mode-slider" id="modeSlider" data-mode="fill">
+    <div class="mode-slider-track">
+      <div class="mode-slider-thumb"></div>
+      <span class="mode-side" data-mode="mark">&#x2715;</span>
+      <span class="mode-side" data-mode="fill">&#9632;</span>
+    </div>
   </div>
 </div>
 
@@ -484,17 +582,19 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 
   function toggleMode() {
     mode = mode === 'fill' ? 'mark' : 'fill';
-    $$('.mode-btn[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    $('#modeSlider').dataset.mode = mode;
   }
-  $$('.mode-btn[data-mode]').forEach(btn => btn.addEventListener('click', toggleMode));
+  $('#modeSlider').addEventListener('click', toggleMode);
 
   function updateHeartsDisplay() {
-    const el = $('#heartsDisplay');
-    if (!livesMode) { el.style.display = 'none'; return; }
-    el.style.display = '';
-    el.innerHTML = [0, 1, 2].map(i =>
+    const html = [0, 1, 2].map(i =>
       `<span class="${i < lives ? '' : 'heart-lost'}">&#9829;</span>`
     ).join('');
+    [$('#heartsDisplay'), $('#heartsDisplayMobile')].forEach(el => {
+      if (!livesMode) { el.style.display = 'none'; return; }
+      el.style.display = '';
+      el.innerHTML = html;
+    });
   }
 
   function checkLivesMove(r, c, intendedValue) {
@@ -817,10 +917,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     return true;
   }
 
-  function updateCellCount() {
-    if (!puzzle) return;
-    $('#cellCount').textContent = `${grid.flat().filter(v => v === 1).length} filled`;
-  }
+  function updateCellCount() {}
 
   async function checkWin() {
     if (solved) return;
@@ -855,7 +952,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
 
   function setMode(m) {
     mode = m;
-    $$('.mode-btn[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    $('#modeSlider').dataset.mode = mode;
   }
 
   $('#markDoneRowsBtn').addEventListener('click', () => {
@@ -884,11 +981,22 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     else if (e.key === 'x' || e.key === 'X') setMode('mark');
   });
 
-  $('#livesModeBtn').addEventListener('click', () => {
-    livesMode = !livesMode;
-    $('#livesModeBtn').classList.toggle('active', livesMode);
-    loadPuzzle();
+  const settingsPanel = $('#settingsPanel');
+  $('#settingsBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    settingsPanel.style.display = settingsPanel.style.display === 'none' ? '' : 'none';
   });
+  document.addEventListener('click', () => { settingsPanel.style.display = 'none'; });
+  settingsPanel.addEventListener('click', e => e.stopPropagation());
+
+  function setLivesMode(on) {
+    livesMode = on;
+    $('#livesModeItem').classList.toggle('active', livesMode);
+    $('#standardModeItem').classList.toggle('active', !livesMode);
+    loadPuzzle();
+  }
+  $('#livesModeItem').addEventListener('click', () => setLivesMode(true));
+  $('#standardModeItem').addEventListener('click', () => setLivesMode(false));
 
   $('#goRetryBtn').addEventListener('click', () => {
     hideGameOverModal();
