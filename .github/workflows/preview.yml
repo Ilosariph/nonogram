@@ -1,49 +1,21 @@
-# Copy this file to .github/workflows/preview.yml in each repo you want previews for.
-#
-# Required GitHub secrets (repo Settings → Secrets and variables → Actions):
-#   WEBHOOK_SECRET — the same value as in /opt/preview-deployments/config/.env on your VPS
-#   WEBHOOK_URL    — full URL to your webhook endpoint, e.g. https://webhooks.yourdomain.com/webhook/preview
-#
-# That's all that's needed in GitHub. Everything else stays on the VPS.
-
-name: Preview Deployment
+name: Preview
 
 on:
   push:
-    branches-ignore:
-      - main
-      - master
   delete:
 
 jobs:
-  trigger:
+  preview:
     runs-on: ubuntu-latest
     steps:
-      - name: Send webhook to VPS
+      - name: Notify VPS Manager
         env:
-          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          WEBHOOK_URL: ${{ secrets.PREVIEW_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.PREVIEW_WEBHOOK_SECRET }}
         run: |
-          # Build the payload (reuse GitHub's own event payload)
-          PAYLOAD='${{ toJson(github.event) }}'
-
-          # Compute HMAC-SHA256 signature
-          SIG="sha256=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" | awk '{print $2}')"
-
-          # Determine event type
-          if [ "${{ github.event_name }}" = "delete" ]; then
-            EVENT="delete"
-          else
-            EVENT="push"
-          fi
-
-          # POST to VPS webhook listener
-          HTTP_STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
-            -X POST \
+          SIG="sha256=$(openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" "$GITHUB_EVENT_PATH" | awk '{print $NF}')"
+          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -H "X-GitHub-Event: $EVENT" \
+            -H "X-GitHub-Event: ${{ github.event_name }}" \
             -H "X-Hub-Signature-256: $SIG" \
-            -d "$PAYLOAD" \
-            "${{ secrets.WEBHOOK_URL }}")
-
-          echo "Webhook response: $HTTP_STATUS"
-          [ "$HTTP_STATUS" = "200" ] || exit 1
+            --data-binary "@$GITHUB_EVENT_PATH"
