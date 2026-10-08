@@ -560,6 +560,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   let painting = null;
   let dragStart = null;
   let dragDir = null; // 'row' | 'col' | null
+  let dragLast = null; // index along drag axis of last painted cell
   let livesMode = true;
   let lives = 3;
   let solution = null;
@@ -755,46 +756,53 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     bindCells();
   }
 
+  function endDrag() { painting = null; dragStart = null; dragDir = null; dragLast = null; }
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+  document.addEventListener('pointermove', onDocPointerMove);
+
   function bindCells() {
     $$('td.cell').forEach(td => {
       td.addEventListener('pointerdown', onPointerDown);
-      td.addEventListener('pointerenter', onPointerEnter);
     });
-    document.addEventListener('pointerup', () => { painting = null; dragStart = null; dragDir = null; });
-    document.addEventListener('pointercancel', () => { painting = null; dragStart = null; dragDir = null; });
-    document.addEventListener('pointermove', onDocPointerMove);
+  }
+
+  // Index of the cell along the drag axis nearest to the pointer.
+  function nearestIndex(cells, pos, axis) {
+    let best = -1, bestDist = Infinity;
+    cells.forEach((td, i) => {
+      const rect = td.getBoundingClientRect();
+      const mid = axis === 'row' ? (rect.left + rect.right) / 2 : (rect.top + rect.bottom) / 2;
+      const dist = Math.abs(pos - mid);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    });
+    return best;
   }
 
   function onDocPointerMove(e) {
-    if (painting === null || solved || dragDir === null) return;
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    if (el && el.classList.contains('cell')) {
-      if (dragDir === 'row') return; // handled by pointerenter
-      if (dragDir === 'col' && +el.dataset.c === dragStart.c) return; // handled by pointerenter
+    if (painting === null || solved || dragStart === null) return;
+    if (dragDir === null) {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      if (!el || !el.classList.contains('cell')) return;
+      const dr = Math.abs(+el.dataset.r - dragStart.r);
+      const dc = Math.abs(+el.dataset.c - dragStart.c);
+      if (dr === 0 && dc === 0) return;
+      dragDir = dc >= dr ? 'row' : 'col';
+      dragLast = dragDir === 'row' ? dragStart.c : dragStart.r;
     }
-    if (dragDir === 'row') {
-      // find which column the pointer is closest to by scanning cells in dragStart.r
-      const cells = Array.from(document.querySelectorAll(`td.cell[data-r="${dragStart.r}"]`));
-      if (!cells.length) return;
-      let best = null, bestDist = Infinity;
-      for (const td of cells) {
-        const rect = td.getBoundingClientRect();
-        const cx = (rect.left + rect.right) / 2;
-        const dist = Math.abs(e.clientX - cx);
-        if (dist < bestDist) { bestDist = dist; best = td; }
-      }
-      if (best) applyCell(dragStart.r, +best.dataset.c, painting);
-    } else {
-      const cells = Array.from(document.querySelectorAll(`td.cell[data-c="${dragStart.c}"]`));
-      if (!cells.length) return;
-      let best = null, bestDist = Infinity;
-      for (const td of cells) {
-        const rect = td.getBoundingClientRect();
-        const cy = (rect.top + rect.bottom) / 2;
-        const dist = Math.abs(e.clientY - cy);
-        if (dist < bestDist) { bestDist = dist; best = td; }
-      }
-      if (best) applyCell(+best.dataset.r, dragStart.c, painting);
+    const cells = Array.from(dragDir === 'row'
+      ? document.querySelectorAll(`td.cell[data-r="${dragStart.r}"]`)
+      : document.querySelectorAll(`td.cell[data-c="${dragStart.c}"]`));
+    if (!cells.length) return;
+    const target = nearestIndex(cells, dragDir === 'row' ? e.clientX : e.clientY, dragDir);
+    if (target < 0 || target === dragLast) return;
+    // Fill every cell between the last painted one and the target so fast drags don't skip cells.
+    const step = target > dragLast ? 1 : -1;
+    for (let i = dragLast + step; ; i += step) {
+      const ok = dragDir === 'row' ? applyCell(dragStart.r, i, painting) : applyCell(i, dragStart.c, painting);
+      if (!ok) break;
+      dragLast = i;
+      if (i === target) break;
     }
   }
 
@@ -806,21 +814,9 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     painting = toggleCell(r, c);
     dragStart = { r, c };
     dragDir = null;
+    dragLast = null;
     e.currentTarget.setPointerCapture?.(e.pointerId);
     e.currentTarget.releasePointerCapture?.(e.pointerId);
-  }
-
-  function onPointerEnter(e) {
-    if (painting === null || solved) return;
-    const r = +e.currentTarget.dataset.r;
-    const c = +e.currentTarget.dataset.c;
-    if (dragDir === null && (r !== dragStart.r || c !== dragStart.c)) {
-      dragDir = r !== dragStart.r ? 'col' : 'row';
-    }
-    if (dragDir === 'col' && c !== dragStart.c) return;
-    const tr = dragDir === 'row' ? dragStart.r : r;
-    const tc = dragDir === 'col' ? dragStart.c : c;
-    applyCell(tr, tc, painting);
   }
 
   function toggleCell(r, c) {
@@ -839,17 +835,18 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   }
 
   function applyCell(r, c, value) {
-    if (livesMode && grid[r][c] !== 0) return;
-    if (grid[r][c] === value) return;
-    if (mode === 'fill' && value !== 0 && value !== 1) return;
-    if (mode === 'mark' && value !== 0 && value !== 2) return;
-    if (value !== 0 && grid[r][c] !== 0) return;
-    if (!checkLivesMove(r, c, value)) return;
+    if (livesMode && grid[r][c] !== 0) return true;
+    if (grid[r][c] === value) return true;
+    if (mode === 'fill' && value !== 0 && value !== 1) return true;
+    if (mode === 'mark' && value !== 0 && value !== 2) return true;
+    if (value !== 0 && grid[r][c] !== 0) return true;
+    if (!checkLivesMove(r, c, value)) return false;
     grid[r][c] = value;
     refreshCell(r, c);
     updateClues();
     updateCellCount();
     checkWin();
+    return true;
   }
 
   function refreshCell(r, c) {
