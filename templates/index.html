@@ -562,6 +562,7 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
   let dragStart = null;
   let dragDir = null; // 'row' | 'col' | null
   let dragLast = null; // index along drag axis of last painted cell
+  let pendingTap = false; // drag started on a non-empty cell; toggle it on release if no drag
   let livesMode = true;
   let lives = 3;
   let solution = null;
@@ -757,8 +758,12 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     bindCells();
   }
 
-  function endDrag() { painting = null; dragStart = null; dragDir = null; dragLast = null; }
-  document.addEventListener('pointerup', endDrag);
+  function endDrag() { painting = null; dragStart = null; dragDir = null; dragLast = null; pendingTap = false; }
+  document.addEventListener('pointerup', () => {
+    // Press on a non-empty cell without dragging acts as a normal tap.
+    if (pendingTap && dragDir === null && !solved) toggleCell(dragStart.r, dragStart.c);
+    endDrag();
+  });
   document.addEventListener('pointercancel', endDrag);
   document.addEventListener('pointermove', onDocPointerMove);
   // iOS Safari can ignore touch-action on table cells; block scroll/pull-to-refresh while painting.
@@ -814,7 +819,14 @@ td.cell.filled.cell-error { animation: cell-flash-red 0.55s ease forwards !impor
     e.preventDefault();
     const r = +e.currentTarget.dataset.r;
     const c = +e.currentTarget.dataset.c;
-    painting = toggleCell(r, c);
+    if (grid[r][c] !== 0) {
+      // Defer: a tap toggles this cell on release, a drag leaves it and paints empty cells.
+      painting = mode === 'fill' ? 1 : 2;
+      pendingTap = true;
+    } else {
+      painting = toggleCell(r, c);
+      pendingTap = false;
+    }
     dragStart = { r, c };
     dragDir = null;
     dragLast = null;
