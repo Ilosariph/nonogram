@@ -1,8 +1,9 @@
-FROM python:3.12-slim
+FROM nginx:1.27-alpine
 
-WORKDIR /app
-COPY . .
-RUN pip install --no-cache-dir flask gunicorn
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY public/ /usr/share/nginx/html/
 
 EXPOSE 5000
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "-w", "2", "app:app"]
+
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD wget -q --spider http://127.0.0.1:5000/ || exit 1

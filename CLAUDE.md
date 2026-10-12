@@ -2,42 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Running the Application
+## Running
 
-**Local development:**
-```bash
-python app.py
-```
-Starts Flask dev server at http://localhost:5000.
-
-**Docker:**
-```bash
-docker-compose up
-```
-Runs with Gunicorn (2 workers) at port 5000.
-
-**Install dependencies:**
-```bash
-pip install flask gunicorn
-```
+- `npm start` — static server at http://localhost:8000 (python3 http.server on `public/`).
+- `npm test` — generator tests via `node --test` (no dependencies).
+- `docker compose up` — nginx serving `public/` on port 5000.
 
 ## Architecture
 
-This is a minimal two-file Flask nonogram puzzle game:
+Static site, no backend, no build step:
 
-- **`app.py`** — Flask backend with two endpoints:
-  - `GET /api/puzzle?seed=<str>&size=<int>` — Generates a deterministic puzzle from a SHA256-hashed seed. Returns row/column clues and a solution hash (never the raw solution).
-  - `POST /api/check` — Validates the player's submitted grid by regenerating the puzzle server-side and comparing.
-- **`templates/index.html`** — The entire frontend: HTML structure, all CSS, and all game JavaScript in one file (~565 lines).
+- **`public/js/nonogram.js`** — pure logic: `generate(seed, size)` (deterministic via FNV-hashed seed + mulberry32), `getGroups`, `column`, `arrEq`.
+- **`public/js/main.js`** — all UI/game code (ES module).
+- **`public/index.html`**, **`public/styles.css`** — markup and styles.
 
 **Key design decisions:**
-- Puzzle generation is deterministic: same seed + size always produces the same puzzle.
-- The solution is never sent to the client; the server re-generates it on each `/api/check` call.
-- Fill density targets 40–55% to keep puzzles solvable; generation retries until no empty rows/columns exist.
-- Frontend validates clues locally (strike-through on completion) but the authoritative win check is server-side.
+- Same seed + size always produces the same puzzle.
+- Generation OR-blends a row-biased and a column-biased random pass, then ensures no empty rows/columns.
+- Win = every row/column clue satisfied (any valid solution counts). Lives mode checks each move against the generated solution.
 
-**Frontend state (all in JS globals):**
+**Frontend state (module globals in main.js):**
 - `grid[r][c]` — `0`=empty, `1`=filled, `2`=marked
 - `mode` — `"fill"` or `"mark"`
-- `puzzle` — current puzzle metadata (clues, size, seed)
+- `puzzle` — `{ seed, size, rowClues, colClues, solution }`
 - `solved` — win flag; `timerSec` — elapsed seconds
