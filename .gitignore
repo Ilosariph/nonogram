@@ -1,1 +1,4 @@
 __pycache__/
+.direnv/
+.envrc
+shell.nix
